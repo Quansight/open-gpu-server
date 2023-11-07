@@ -1,0 +1,52 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -o errexit
+set -o nounset
+set -o pipefail
+
+echo "#############################################################"
+echo "# Docker Installation                                       #"
+echo "#############################################################"
+
+echo "Installing Docker"
+echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q
+DEBIAN_FRONTEND=noninteractive sudo apt update
+DEBIAN_FRONTEND=noninteractive sudo apt upgrade -y
+DEBIAN_FRONTEND=noninteractive sudo apt-get install ca-certificates curl gnupg lsb-release -y
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+DEBIAN_FRONTEND=noninteractive sudo apt update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin -y
+echo "Done"
+
+echo "#############################################################"
+echo "# Docker Installation Complete                              #"
+echo "#############################################################"
+
+echo "#############################################################"
+echo "# Docker MTU PATCH                                          #"
+echo "#############################################################"
+
+python3 <<EOF
+import json
+from pathlib import Path
+mtu_data = {"mtu": 1200}
+daemon_json = Path("/etc/docker/daemon.json")
+if daemon_json.is_file():
+    data = json.loads(daemon_json.read_text())
+    data.update(mtu_data)
+    daemon_json.write_text(json.dumps(data))
+else:
+    daemon_json.write_text(json.dumps(mtu_data))
+EOF
+
+echo "#############################################################"
+echo "# MISC DONE                                                 #"
+echo "#############################################################"

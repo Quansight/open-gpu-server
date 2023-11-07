@@ -1,0 +1,49 @@
+#!/bin/bash
+
+if [ ${DIB_DEBUG_TRACE:-0} -gt 0 ]; then
+    set -x
+fi
+set -o errexit
+set -o nounset
+set -o pipefail
+
+
+echo "#############################################################"
+echo "# CUDA Installation                                         #"
+echo "#############################################################"
+
+## comparing chroot kernel with host kernel
+#CHROOT_KERNEL=$(rpm -q --queryformat "%{installtime} %{version}-%{release}.%{arch}\n" kernel | sort -nr | sed -n 1p | cut -d' ' -f2)
+#HOST_KERNEL=$(uname -r)
+#if [ "$CHROOT_KERNEL" != "$HOST_KERNEL" ]; then
+#	"ERROR: kernel mismatch!"
+#	exit 1
+#fi
+
+echo "Add hostname to /etc/hosts"
+echo $(hostname -I | cut -d\  -f1) $(hostname) | sudo tee -a /etc/hosts
+
+echo "Installing linux headers"
+sudo apt-get install linux-headers-"$(uname -r)" -y
+
+echo "Installing Nvidia Drivers"
+echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q
+DEBIAN_FRONTEND=noninteractive sudo apt update
+DEBIAN_FRONTEND=noninteractive sudo apt upgrade -y
+DEBIAN_FRONTEND=noninteractive sudo apt install nvidia-driver-525 -y
+echo "Put nvidia drivers on hold: DO NOT UPGRADE basically"
+dpkg-query -W --showformat='${Package} ${Status}\n' | grep -v deinstall | awk '{ print $1 }' | grep -E 'nvidia.*-[0-9]+$' | xargs -r -L 1 sudo apt-mark hold
+
+echo "#############################################################"
+echo "# Install Nvidia Container Toolkit                          #"
+echo "#############################################################"
+
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+DEBIAN_FRONTEND=noninteractive sudo apt-get update
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nvidia-container-toolkit
+echo "Done"

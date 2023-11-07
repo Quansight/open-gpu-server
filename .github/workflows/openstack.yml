@@ -1,0 +1,74 @@
+name: Upload Image to OpenStack
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: 'Image name'
+        type: string
+        required: true
+
+      input_image_name:
+        description: 'Input Image Name in GCS'
+        type: string
+        required: true
+
+env:
+  OS_AUTH_URL: https://ci.quansight.dev/in-api/identity
+  OS_IDENTITY_API_VERSION: 3
+  OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+  OS_PROJECT_DOMAIN_NAME: Default
+  OS_PROJECT_NAME: ${{ secrets.OS_USERNAME }}
+  OS_REGION_NAME: RegionOne
+  OS_TENANT_NAME: ${{ secrets.OS_USERNAME }}
+  OS_USERNAME: ${{ secrets.OS_USERNAME }}
+  OS_USER_DOMAIN_NAME: Default
+  INPUT_IMAGE: /tmp/input-image
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2.2.0
+        with:
+          python-version: "3.10"
+          miniconda-version: "latest"
+
+      - name: Install openstack client
+        run: |
+          pip install python-openstackclient==6.0.0
+
+      - name: Check Openstack client
+        run: |
+          openstack help
+
+      - name: Save GCP Creds
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS }}' > /tmp/gcp.json
+
+      - uses: actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - name: Download image from GCS
+        run: |
+          gcloud auth activate-service-account --key-file /tmp/gcp.json --project aktech-labs
+          mkdir $INPUT_IMAGE
+          gsutil cp gs://cirun/images/${{ inputs.input_image_name }} $INPUT_IMAGE/
+          ls $INPUT_IMAGE
+
+      - name: Upload image
+        run: |
+          openstack image create ${{ inputs.image_name }} \
+            --public --disk-format qcow2 \
+            --container-format bare \
+            --file $INPUT_IMAGE/${{ inputs.input_image_name }}
