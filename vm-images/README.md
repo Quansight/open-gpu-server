@@ -17,7 +17,9 @@ These should automate the creation of the images:
 ## Building manually
 
 1. Install `diskimage-builder` manually via `pip install -r requirements.txt`. A virtual environment is advised.
-2. Run `scripts/build-image.sh` to build the image. This will create a `.qcow2` file in the `build/` directory, with CUDA and Docker. Review the elements list to change what gets included (e.g. to remove `cuda` and build a CPU only image).
+2. Run `scripts/build-image.sh` to build the image. This will create a `.qcow2` file. 
+    - Export `$IMAGE_YAML` to choose a different image to build (e.g. `cpu-image.yaml`, `gpu-image.yaml`).
+    - Export `$OUTPUT_IMAGE` to change the qcow2 output filename.
 
 ## Add Image to OpenStack
 

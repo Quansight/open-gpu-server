@@ -10,23 +10,17 @@ DIB_NO_TMPFS=1
 if [[ -z "${LOG_TO_FILE}" ]]; then 
   LOG_TO_FILE="--logfile dib.log"
 fi
-if [[ -z "${OUTPUT_IMAGE}" ]]; then 
-  OUTPUT_IMAGE="./"
+if [[ -z "${IMAGE_YAML}" ]]; then 
+  IMAGE_YAML="cpu-image.yaml"
 fi
-if [[ -z "${ELEMENTS}" ]]; then 
-  OUTPUT_IMAGE="./"
+if [[ -z "${OUTPUT_IMAGE}" ]]; then 
+  output_fn=$(basename -- "${IMAGE_YAML}")
+  OUTPUT_IMAGE="${output_fn%.*}-$(date +%Y%m%d%H%M).qcow2"
 fi
 
 echo "Starting Disk Image builder"
-# Each positional argument is an 'element' to add to the image
-# Remove `cuda` for non GPU images
 disk-image-create \
-  vm \
-  dhcp-all-interfaces \
-  block-device-gpt \
-  ubuntu \
-  cuda -x \
-  misc \
+  ${IMAGE_YAML:-cpu-image.yaml}
   --no-tmpfs \
-  -o "$OUTPUT_IMAGE"
+  -o "${OUTPUT_IMAGE}"
 echo "Starting Disk Image Finished"
