@@ -11,7 +11,7 @@ Note that by applying and using the service, users must agree to the [Terms of S
 ## Base configuration
 
 - Model: AMD EPYC 7352 24-Core Processor
-- Archictecture: `x86_64`, 32-bit, 64-bit
+- Architecture: `x86_64`, 32-bit, 64-bit
 - 48 Cores
 - ~500 GB Memory
 - 6x NVIDIA Tesla V100

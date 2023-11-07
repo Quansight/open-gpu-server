@@ -30,15 +30,25 @@ created by OpenStack instead and hence detected by the NVIDIA drivers in those V
 
 ### IOMMU groups
 
-There are 6 x GPUs attached to the GPU server. They are in distributed in 4 IOMMU groups, as shows below:
+There are 6 x GPUs attached to the GPU server. They are in distributed in 4 IOMMU groups, as shown below:
 
-```
-IOMMU Group 19 27:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
-IOMMU Group 19 28:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
-IOMMU Group 32 44:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
-IOMMU Group 75 a3:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
-IOMMU Group 87 c3:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
-IOMMU Group 87 c4:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
+```bash
+function lsiommu() {
+    for d in $(find /sys/kernel/iommu_groups/ -type l | sort -n -k5 -t/); do
+        n=${d#*/iommu_groups/*}
+        n=${n%%/*}
+        printf 'IOMMU Group %s ' "$n"
+        lspci -nns "${d##*/}"
+    done;
+}
+lsiommu | grep NVIDIA
+# prints:
+# IOMMU Group 19 27:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
+# IOMMU Group 19 28:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
+# IOMMU Group 32 44:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
+# IOMMU Group 75 a3:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
+# IOMMU Group 87 c3:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
+# IOMMU Group 87 c4:00.0 3D controller [0302]: NVIDIA Corporation GV100GL [Tesla V100 PCIe 16GB] [10de:1db4] (rev a1)
 ```
 
 <details>
