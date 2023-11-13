@@ -1,0 +1,7 @@
+- elements:
+  - vm
+  - dhcp-all-interfaces
+  - block-device-gpt
+  - ubuntu
+  - cuda
+  - misc

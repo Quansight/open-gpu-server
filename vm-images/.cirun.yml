@@ -1,0 +1,13 @@
+# Self-Hosted Github Action Runners on Openstack via Cirun.io
+# Reference: https://docs.cirun.io/reference/yaml
+runners:
+  - name: openstack-runner
+    # Cloud Provider: Openstack
+    cloud: openstack
+    # Instance type refers to flavors in openstack
+    instance_type: gpu_large
+    # The machine image to use for creating VM
+    machine_image: ubuntu-2204-nvidia-docker-20221229
+    region: RegionOne
+    labels:
+      - cirun-runner

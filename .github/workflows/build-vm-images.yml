@@ -1,0 +1,73 @@
+name: Build VM Images
+
+on: workflow_dispatch
+
+env:
+  OUTPUT_IMAGE_PATH: /tmp/ubuntu-nvidia
+  ELEMENTS_PATH: /home/runnerx/actions-runner/_work/nvidia-openstack-image/nvidia-openstack-image/elements/
+  #  Workaround for upload-cloud-storage to work
+  OPENSSL_CONF: /dev/null
+
+
+jobs:
+  build:
+    runs-on: "cirun-runner--${{ github.run_id }}"
+
+    steps:
+      - uses: actions/checkout@v3
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: '${{ secrets.GOOGLE_CREDENTIALS }}'
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3.5.1
+        with:
+          node-version: 16
+
+      - name: Check NVIDIA SMI
+        run: nvidia-smi || true
+
+      - name: Setup Miniconda
+        uses: conda-incubator/setup-miniconda@v2.2.0
+        with:
+          python-version: "3.10"
+          miniconda-version: "latest"
+        env:
+          CONDA: "/home/runnerx/miniconda3"
+      - name: Set output image path
+        run: |
+          cat .env >> $GITHUB_ENV
+
+      - name: Create output image name
+        id: output-image
+        run: |
+          timestamp=$(date +%s)
+          output_image_name=nvidia-openstack-image-$timestamp
+          echo "OUTPUT_IMAGE=/tmp/output-image/$output_image_name" >> $GITHUB_ENV
+          echo "OUTPUT_IMAGE_NAME=$output_image_name" >> $GITHUB_OUTPUT
+
+      - name: Add hostname to /etc/hosts
+        run: echo $(hostname -I | cut -d\  -f1) $(hostname) | sudo tee -a /etc/hosts
+
+      - name: Install dependencies
+        shell: bash -el {0}
+        run: |
+          sudo apt update
+          sudo apt upgrade -y
+          sudo apt install qemu-utils python3-pip -y
+          pip install -r requirements.txt
+
+      - name: Run disk image builder
+        shell: bash -el {0}
+        run: |
+          echo "OUTPUT_IMAGE: $OUTPUT_IMAGE_NAME"
+          bash vm-images/build-image.sh
+
+      - id: 'upload-file'
+        name: Upload built disk image to GCS
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: '/tmp/output-image/${{ steps.output-image.outputs.OUTPUT_IMAGE_NAME}}.qcow2'
+          destination: 'cirun/images/'
