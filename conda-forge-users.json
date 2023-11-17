@@ -1,7 +1,13 @@
 {
   "users": [
-    "jaimegrp",
-    "isuruf",
-    "aktech"
+    {
+      "github": "jaimergp",
+    },
+    {
+      "github": "aktech",
+    },
+    {
+      "github": "isuruf",
+    },
   ]
 }
