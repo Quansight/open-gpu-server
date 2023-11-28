@@ -18,8 +18,8 @@ jobs:
       - name: Install requests
         run: pip install requests
       - name: Validate
+        shell: python
         run: |
-          python - <<EOF
           import json
           import requests
           import sys
@@ -40,8 +40,8 @@ jobs:
           exceptions = []
           for path in Path("access").glob("*.json"):
             print("Processing", path)
-            users = json.loads(path.read_text())
-            for user in users:
+            access_data = json.loads(path.read_text())
+            for user in access_data["users"]:
               login = user.get("github")
               if not login:
                 raise ValueError(f"Entry {user} is missing `github` key.")
@@ -55,5 +55,3 @@ jobs:
                 exceptions.append(exc)
           if exceptions:
             sys.exit(1)
-          EOF
-
