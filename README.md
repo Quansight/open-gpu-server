@@ -4,9 +4,10 @@ This repository provides information about the OpenStack instance Quansight and 
 
 ## Access
 
-The main intent of this service is to provide GPU CI to those conda-forge feedstocks that require it. Feedstocks must request access via [`conda-forge/admin-requests`](https://github.com/conda-forge/admin-requests), as instructed in the README there.
+The main intent of this service is to provide GPU CI to those conda-forge feedstocks that require it. To do so:
 
-Note that by applying and using the service, users must agree to the [Terms of Service](./TOS.md).
+- **Feedstocks** must have access to the service. Refer to the [`conda-forge/admin-requests`](https://github.com/conda-forge/admin-requests) README.
+- **Maintainers** you must read and agree to the [Terms of Service](./TOS.md). Your username must be listed in [`access/conda-forge-users.json`](./access/conda-forge-users.json). Please open a PR to add yourself to the list.
 
 ## Base configuration
 
