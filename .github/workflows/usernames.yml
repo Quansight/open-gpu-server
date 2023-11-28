@@ -1,0 +1,57 @@
+name: Access control
+
+on:
+  push: 
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Validate usernames
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - name: Install requests
+        run: pip install requests
+      - name: Validate
+        shell: python
+        run: |
+          import json
+          import requests
+          import sys
+          from pathlib import Path
+
+          def check_login_id(login, ident):
+            r = requests.get(f"https://api.github.com/users/{login}", headers={
+              "Accept": "application/vnd.github.v3+json",
+              "Authorization": f"token ${{ secrets.GITHUB_TOKEN }}",
+            })
+            r.raise_for_status()
+            data = r.json()
+            if data["id"] != ident:
+              raise ValueError(
+                f"Supplied identified {ident} for user {login} "
+                f"doesn't match Github API: {data['id']}"
+              )
+          exceptions = []
+          for path in Path("access").glob("*.json"):
+            print("Processing", path)
+            access_data = json.loads(path.read_text())
+            for user in access_data["users"]:
+              login = user.get("github")
+              if not login:
+                raise ValueError(f"Entry {user} is missing `github` key.")
+              ident = user.get("id")
+              if not ident:
+                raise ValueError(f"Entry {user} is missing `id` key.")
+              try:
+                check_login_id(login, ident)
+              except ValueError as exc:
+                print("!!!", exc.__class__.__name__, "->", exc)
+                exceptions.append(exc)
+          if exceptions:
+            sys.exit(1)
