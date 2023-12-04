@@ -13,7 +13,7 @@ The main intent of this service is to provide GPU CI to those conda-forge feedst
 
 If you suspect the server is not operating as expected, please check:
 
-- [Status page](https://open-gpu-server.openstatus.dev/)
+- [Status page](https://ci-status.quansight.dev/)
 - [Ongoing incidents](https://github.com/Quansight/open-gpu-server/issues?q=is%3Aopen+is%3Aissue+label%3Aincident%3Adegraded-performance%2Cincident%3Ainvestigating%2Cincident%3Amajor-outage+sort%3Aupdated-desc)
 
 If you think there should be an open incident report but there's none, please open a new issue and tag [@Quansight/open-gpu-server](https://github.com/orgs/Quansight/teams/open-gpu-server) so the team can take a look. Thanks!
