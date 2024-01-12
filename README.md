@@ -49,6 +49,8 @@ These runners use the `ubuntu-2204-nvidia-20230914` image.
 | ------------ | ----- | ---- | ------ |
 | `ci_medium`  | 4     | 8GB  | 60GB   |
 | `ci_large`   | 4     | 12GB | 60GB   |
+| `ci_2xlarge` | 8     | 32GB | 60GB   |
+| `ci_4xlarge` | 8     | 64GB | 60GB   |
 
 These runners use the `ubuntu-2204-20231018` image.
 
