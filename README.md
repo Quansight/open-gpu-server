@@ -61,7 +61,7 @@ These runners run ISOs derived from Ubuntu 22.04. Images are built with the inst
 
 ## Limitations
 
-* Concurrency depends on available resources. Only 4 GPUs can be exposed to the VMs at a time; expect queues. This is not per repository, but a server-wide limitation. See [docs/setup.md](/docs/setup.md) for details.
+* Concurrency depends on available resources. Only 4 GPUs can be exposed to the VMs at a time; expect queues. This is not per repository, but a server-wide limitation. See [docs/openstack.md](/docs/openstack.md) for details.
 * We have not yet implemented a time limit per job. Please be mindful of this and try to keep your jobs as short as possible. This might change in the future.
 
 ## Support
