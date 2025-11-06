@@ -1,4 +1,8 @@
-- elements:
+- imagename: cpu-image.qcow2
+  no-tmpfs: true
+  arch: amd64
+  types: [qcow2]
+  elements:
   - vm
   - dhcp-all-interfaces
   - block-device-gpt

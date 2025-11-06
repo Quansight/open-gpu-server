@@ -1,1 +1,1 @@
-diskimage-builder==3.25.0
+diskimage-builder==3.40.0

@@ -56,7 +56,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt upgrade -y
-          sudo apt install qemu-utils python3-pip -y
+          sudo apt install qemu-utils python3-pip curl sudo -y
           pip install -r requirements.txt
 
       - name: Run disk image builder
