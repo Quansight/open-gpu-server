@@ -49,22 +49,26 @@ jobs:
           ssh gpuserver "mkdir -p /tmp/repo-${{ github.run_id }}"
           scp -r ./* gpuserver:/tmp/repo-${{ github.run_id }}/
 
+      - name: Install uv on server
+        run: |
+          ssh gpuserver "mkdir -p /tmp/uv-${{ github.run_id }} && curl -LsSf https://astral.sh/uv/install.sh | env INSTALLER_NO_MODIFY_PATH=1 sh && mv ~/.local/bin/uv ~/.local/bin/uvx /tmp/uv-${{ github.run_id }}/"
+
       - name: Build ${{ matrix.image-type }} image on remote server
         id: build
         run: |
-          ssh -t gpuserver "export COLUMNS=200 && cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }}"
+          ssh -t gpuserver "export COLUMNS=200 && cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv"
           IMAGE_NAME=$(ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && ls -1 *.qcow2 2>/dev/null | head -1 | sed 's/.qcow2$//'")
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Upload image to OpenStack from server
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/aktech/'))
         run: |
-          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make upload-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }}"
+          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make upload-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv"
 
       - name: Cleanup temp directories on server
         if: always()
         run: |
-          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make clean BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} && cd / && rm -rf /tmp/repo-${{ github.run_id }}" || true
+          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make clean BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} && cd / && rm -rf /tmp/repo-${{ github.run_id }} /tmp/uv-${{ github.run_id }}" || true
 
       - name: Add job summary
         if: always()
