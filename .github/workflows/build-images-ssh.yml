@@ -34,12 +34,19 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          cat >> ~/.ssh/config << EOF
+          Host gpuserver
+            HostName ${{ secrets.SSH_HOST }}
+            Port ${{ secrets.SSH_PORT }}
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+          EOF
+          chmod 600 ~/.ssh/config
 
       - name: Create temporary build directory on server
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "mkdir -p /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}"
+          ssh gpuserver "mkdir -p /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}"
 
       - name: Set image name with timestamp
         id: image-name
@@ -52,27 +59,20 @@ jobs:
 
       - name: Copy vm-images directory to server
         run: |
-          scp -P ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r \
-            ./vm-images/* \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/
+          scp -r ./vm-images/* gpuserver:/tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/
 
       - name: Update image name in YAML config
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && sed -i 's/imagename: ${{ matrix.image-type }}-image.qcow2/imagename: ${{ steps.image-name.outputs.IMAGE_NAME }}.qcow2/' ${{ matrix.image-type }}-image.yaml"
+          ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && sed -i 's/imagename: ${{ matrix.image-type }}-image.qcow2/imagename: ${{ steps.image-name.outputs.IMAGE_NAME }}.qcow2/' ${{ matrix.image-type }}-image.yaml"
 
       - name: Build ${{ matrix.image-type }} image on remote server
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
+          ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
 
       - name: Display built image information
         if: success()
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh gpuserver << 'EOF'
             echo "======================================"
             echo "Built Image Information"
             echo "======================================"
@@ -97,9 +97,7 @@ jobs:
       - name: Upload image to OpenStack from server
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/aktech/'))
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "source /etc/kolla/admin-openrc.sh && \
+          ssh gpuserver "source /etc/kolla/admin-openrc.sh && \
              source /opt/stack/miniconda3/bin/activate && \
              conda activate kolla && \
              cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && \
@@ -114,6 +112,4 @@ jobs:
       - name: Cleanup temp directory on server
         if: always()
         run: |
-          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "sudo rm -rf /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}" || true
+          ssh gpuserver "sudo rm -rf /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}" || true
