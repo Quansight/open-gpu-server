@@ -44,72 +44,21 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Create temporary build directory on server
+      - name: Sync repository to server
         run: |
-          ssh gpuserver "mkdir -p /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}"
-
-      - name: Set image name with timestamp
-        id: image-name
-        run: |
-          VERSION_DATE=$(date +%Y%m%d)
-          TIMESTAMP=$(date +%H%M%S)
-          IMAGE_NAME="ubuntu-2404-${{ matrix.image-type }}-${VERSION_DATE}-${TIMESTAMP}"
-          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_OUTPUT
-          echo "Building image: ${IMAGE_NAME}"
-
-      - name: Copy vm-images directory to server
-        run: |
-          scp -r ./vm-images/* gpuserver:/tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/
-
-      - name: Update image name in YAML config
-        run: |
-          ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && sed -i 's/imagename: ${{ matrix.image-type }}-image.qcow2/imagename: ${{ steps.image-name.outputs.IMAGE_NAME }}.qcow2/' ${{ matrix.image-type }}-image.yaml"
+          ssh gpuserver "mkdir -p /tmp/repo-${{ github.run_id }}"
+          scp -r ./* gpuserver:/tmp/repo-${{ github.run_id }}/
 
       - name: Build ${{ matrix.image-type }} image on remote server
         run: |
-          ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
-
-      - name: Display built image information
-        if: success()
-        run: |
-          ssh gpuserver << 'EOF'
-            echo "======================================"
-            echo "Built Image Information"
-            echo "======================================"
-            cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}
-            IMAGE_FILE=$(ls -1 *.qcow2 2>/dev/null | head -1)
-            if [ -n "$IMAGE_FILE" ]; then
-              echo "Image Path: /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/$IMAGE_FILE"
-              echo "Image Size: $(ls -lh $IMAGE_FILE | awk '{print $5}')"
-              echo "Full Details:"
-              ls -lh $IMAGE_FILE
-              echo ""
-              if command -v qemu-img &> /dev/null; then
-                echo "QEMU Image Info:"
-                qemu-img info $IMAGE_FILE
-              fi
-            else
-              echo "No .qcow2 image file found!"
-            fi
-            echo "======================================"
-          EOF
+          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }}"
 
       - name: Upload image to OpenStack from server
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/aktech/'))
         run: |
-          ssh gpuserver "source /etc/kolla/admin-openrc.sh && \
-             source /opt/stack/miniconda3/bin/activate && \
-             conda activate kolla && \
-             cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && \
-             echo 'Uploading image to OpenStack...' && \
-             openstack image create ${{ steps.image-name.outputs.IMAGE_NAME }} \
-               --public --disk-format qcow2 \
-               --container-format bare \
-               --file ${{ steps.image-name.outputs.IMAGE_NAME }}.qcow2 && \
-             echo 'Image uploaded successfully!' && \
-             openstack image show ${{ steps.image-name.outputs.IMAGE_NAME }}"
+          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make upload-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }}"
 
-      - name: Cleanup temp directory on server
+      - name: Cleanup temp directories on server
         if: always()
         run: |
-          ssh gpuserver "sudo rm -rf /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}" || true
+          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make clean BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} && cd / && rm -rf /tmp/repo-${{ github.run_id }}" || true
