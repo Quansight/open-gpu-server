@@ -24,7 +24,7 @@ echo "Add hostname to /etc/hosts"
 echo $(hostname -I | cut -d\  -f1) $(hostname) | sudo tee -a /etc/hosts
 
 echo "Installing linux headers"
-sudo apt-get install linux-headers-"$(uname -r)" -y
+sudo apt-get install linux-headers-generic -y
 
 echo "Installing Nvidia Drivers"
 echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selections
