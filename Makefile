@@ -94,7 +94,7 @@ _upload:
 	@echo "Uploading $(IMAGE_TYPE) image to OpenStack"
 	@echo "======================================"
 	@cd $(BUILD_DIR)-$(IMAGE_TYPE) && \
-		source $(OPENSTACK_RC) && \
+		. $(OPENSTACK_RC) && \
 		IMAGE_FILE=$$(ls -1 *.qcow2 2>/dev/null | head -1) && \
 		IMAGE_BASE=$$(basename $$IMAGE_FILE .qcow2) && \
 		echo "Uploading $$IMAGE_FILE..." && \
