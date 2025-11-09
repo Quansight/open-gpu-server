@@ -1,13 +1,7 @@
 name: Build VM Images (SSH)
 
 on:
-  push:
-    paths:
-      - 'vm-images/**'
-      - '.github/workflows/build-images-ssh.yml'
-    branches:
-      - main
-      - 'aktech/**'
+  workflow_dispatch:
 
 concurrency:
   group: build-vm-images
@@ -56,13 +50,13 @@ jobs:
       - name: Build ${{ matrix.image-type }} image on remote server
         id: build
         run: |
-          ssh -t gpuserver "export COLUMNS=200 && cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv"
+          ssh -t gpuserver "cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv"
           IMAGE_NAME=$(ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && ls -1 *.qcow2 2>/dev/null | head -1 | sed 's/.qcow2$//'")
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
       - name: Upload image to OpenStack from server
         id: upload
-        if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/aktech/'))
+        if: success() && github.ref == 'refs/heads/main'
         run: |
           IMAGE_TAGS="--tag name=${{ steps.build.outputs.image_name }} --tag environment=ci --tag project=conda-forge-gpu-ci --tag image-type=${{ matrix.image-type }} --tag build-job-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} --tag commit-hash=${{ github.sha }} --tag branch=${{ github.ref_name }} --tag build-timestamp=$(date -u +%Y%m%d-%H%M%S)"
           ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make upload-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv IMAGE_TAGS='$IMAGE_TAGS'"
@@ -86,7 +80,7 @@ jobs:
             elif [ "${{ steps.upload.outcome }}" == "failure" ]; then
               echo "☁️ **OpenStack Upload:** ❌ Failed" >> $GITHUB_STEP_SUMMARY
             elif [ "${{ steps.upload.outcome }}" == "skipped" ]; then
-              echo "☁️ **OpenStack Upload:** ⏭️ Skipped (not main/aktech branch)" >> $GITHUB_STEP_SUMMARY
+              echo "☁️ **OpenStack Upload:** ⏭️ Skipped (not main branch)" >> $GITHUB_STEP_SUMMARY
             fi
           else
             echo "❌ **Build Status:** Failed" >> $GITHUB_STEP_SUMMARY

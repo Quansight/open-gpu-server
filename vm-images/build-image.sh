@@ -22,8 +22,6 @@ if [[ -z "${IMAGE_YAML}" ]]; then
 fi
 
 export TMP=$(pwd)
-export COLUMNS=${COLUMNS:-200}
-export TERM=${TERM:-xterm}
 
 UV=${UV:-uv}
 

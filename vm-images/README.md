@@ -43,9 +43,9 @@ make build-cpu UV=/path/to/uv
 
 ## Automated Builds
 
-GitHub Actions automatically builds and uploads images on push to `main` or `aktech/*` branches. Check `.github/workflows/build-images-ssh.yml`.
+GitHub Actions workflow (`.github/workflows/build-images-ssh.yml`) can be triggered manually via workflow_dispatch.
 
-The workflow SSHs into the GPU server to run both CPU and GPU builds. GPU images require actual GPU hardware - they'll fail without it.
+The workflow SSHs into the GPU server to run both CPU and GPU builds. Uploads to OpenStack only happen on `main` branch. GPU images require actual GPU hardware - they'll fail without it.
 
 ## Image Contents
 
