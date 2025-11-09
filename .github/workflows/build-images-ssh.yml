@@ -18,6 +18,10 @@ jobs:
     name: Build ${{ matrix.image-type }} Image
     runs-on: ubuntu-latest
 
+    outputs:
+      cpu-image-name: ${{ steps.set-output.outputs.cpu-image-name }}
+      gpu-image-name: ${{ steps.set-output.outputs.gpu-image-name }}
+
     strategy:
       matrix:
         image-type: [cpu, gpu]
@@ -41,12 +45,25 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
             "mkdir -p /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}"
 
-      - name: Copy build scripts to server
+      - name: Set image name with timestamp
+        id: image-name
         run: |
-          rsync -avz \
-            -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-            ./vm-images/ \
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          IMAGE_NAME="ubuntu-2404-${{ matrix.image-type }}-${TIMESTAMP}"
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "Building image: ${IMAGE_NAME}"
+
+      - name: Copy vm-images directory to server
+        run: |
+          scp -P ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r \
+            ./vm-images/* \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/
+
+      - name: Update image name in YAML config
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && sed -i 's/imagename: ${{ matrix.image-type }}-image.qcow2/imagename: ${{ steps.image-name.outputs.IMAGE_NAME }}.qcow2/' ${{ matrix.image-type }}-image.yaml"
 
       - name: Build ${{ matrix.image-type }} image on remote server
         run: |
@@ -79,6 +96,83 @@ jobs:
             fi
             echo "======================================"
           EOF
+
+      - name: Set job outputs
+        id: set-output
+        if: success()
+        run: |
+          if [ "${{ matrix.image-type }}" == "cpu" ]; then
+            echo "cpu-image-name=${{ steps.image-name.outputs.IMAGE_NAME }}" >> $GITHUB_OUTPUT
+          else
+            echo "gpu-image-name=${{ steps.image-name.outputs.IMAGE_NAME }}" >> $GITHUB_OUTPUT
+          fi
+
+  upload-to-openstack:
+    name: Upload Images to OpenStack
+    runs-on: ubuntu-latest
+    needs: build-images
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/aktech/')
+
+    strategy:
+      matrix:
+        image-type: [cpu, gpu]
+      max-parallel: 1
+      fail-fast: false
+
+    steps:
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Set image name from build job
+        id: image-info
+        run: |
+          if [ "${{ matrix.image-type }}" == "cpu" ]; then
+            IMAGE_NAME="${{ needs.build-images.outputs.cpu-image-name }}"
+          else
+            IMAGE_NAME="${{ needs.build-images.outputs.gpu-image-name }}"
+          fi
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_OUTPUT
+          echo "Uploading image: ${IMAGE_NAME}"
+
+      - name: Download image from server
+        run: |
+          mkdir -p /tmp/built-images
+          scp -P ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/${{ steps.image-info.outputs.IMAGE_NAME }}.qcow2 \
+            /tmp/built-images/
+
+      - name: Setup Python for OpenStack client
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0 https://github.com/actions/setup-python/releases/tag/v5.3.0
+        with:
+          python-version: '3.10'
+
+      - name: Install OpenStack client
+        run: |
+          pip install python-openstackclient==6.0.0
+
+      - name: Upload image to OpenStack
+        env:
+          OS_AUTH_URL: https://ci.quansight.dev/in-api/identity
+          OS_IDENTITY_API_VERSION: 3
+          OS_PASSWORD: ${{ secrets.OS_PASSWORD }}
+          OS_PROJECT_DOMAIN_NAME: Default
+          OS_PROJECT_NAME: ${{ secrets.OS_USERNAME }}
+          OS_REGION_NAME: RegionOne
+          OS_TENANT_NAME: ${{ secrets.OS_USERNAME }}
+          OS_USERNAME: ${{ secrets.OS_USERNAME }}
+          OS_USER_DOMAIN_NAME: Default
+        run: |
+          echo "Uploading image to OpenStack..."
+          openstack image create ${{ steps.image-info.outputs.IMAGE_NAME }} \
+            --public --disk-format qcow2 \
+            --container-format bare \
+            --file /tmp/built-images/${{ steps.image-info.outputs.IMAGE_NAME }}.qcow2
+          echo "Image uploaded successfully!"
+          openstack image show ${{ steps.image-info.outputs.IMAGE_NAME }}
 
       - name: Cleanup temp directory on server
         if: always()
