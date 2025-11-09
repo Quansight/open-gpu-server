@@ -44,8 +44,9 @@ jobs:
       - name: Set image name with timestamp
         id: image-name
         run: |
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          IMAGE_NAME="ubuntu-2404-${{ matrix.image-type }}-${TIMESTAMP}"
+          VERSION_DATE=$(date +%Y%m%d)
+          TIMESTAMP=$(date +%H%M%S)
+          IMAGE_NAME="ubuntu-2404-${{ matrix.image-type }}-${VERSION_DATE}-${TIMESTAMP}"
           echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_OUTPUT
           echo "Building image: ${IMAGE_NAME}"
 
