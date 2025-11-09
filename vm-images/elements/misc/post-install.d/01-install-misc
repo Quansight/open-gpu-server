@@ -8,6 +8,22 @@ set -o nounset
 set -o pipefail
 
 echo "#############################################################"
+echo "# Installing 7zip and zip                                   #"
+echo "#############################################################"
+DEBIAN_FRONTEND=noninteractive sudo apt install zip p7zip-full -y
+echo "Done"
+
+echo "#############################################################"
+echo "# Node.js Installation                                      #"
+echo "#############################################################"
+echo "Installing Node.js 24 LTS"
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo bash -
+DEBIAN_FRONTEND=noninteractive sudo apt-get install -y nodejs
+node --version
+npm --version
+echo "Node.js installation complete"
+
+echo "#############################################################"
 echo "# Docker Installation                                       #"
 echo "#############################################################"
 

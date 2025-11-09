@@ -1,0 +1,5 @@
+# Build artifacts
+vm-images/dib.log
+vm-images/build-output.log
+vm-images/*.qcow2
+vm-images/*.d/

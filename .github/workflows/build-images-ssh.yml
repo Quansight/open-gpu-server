@@ -1,0 +1,48 @@
+name: Build VM Images (SSH)
+
+on:
+  push:
+    paths:
+      - 'vm-images/**'
+      - '.github/workflows/build-images-ssh.yml'
+    branches:
+      - main
+      - 'aktech/**'
+
+jobs:
+  build-images:
+    name: Build ${{ matrix.image-type }} Image
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image-type: [cpu, gpu]
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0 https://github.com/actions/checkout/releases/tag/v5.0.0
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy build scripts to server
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+            ./vm-images/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/open-gpu-server/vm-images/
+
+      - name: Build ${{ matrix.image-type }} image on remote server
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ~/open-gpu-server/vm-images && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
