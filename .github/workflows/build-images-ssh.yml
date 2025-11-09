@@ -64,7 +64,8 @@ jobs:
         id: upload
         if: success() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/aktech/'))
         run: |
-          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make upload-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv"
+          IMAGE_TAGS="--tag name=${{ steps.build.outputs.image_name }} --tag environment=ci --tag project=conda-forge-gpu-ci --tag image-type=${{ matrix.image-type }} --tag build-job-url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} --tag commit-hash=${{ github.sha }} --tag branch=${{ github.ref_name }} --tag build-timestamp=$(date -u +%Y%m%d-%H%M%S)"
+          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make upload-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }} UV=/tmp/uv-${{ github.run_id }}/uv IMAGE_TAGS='$IMAGE_TAGS'"
 
       - name: Cleanup temp directories on server
         if: always()

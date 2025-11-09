@@ -11,6 +11,7 @@ REPO_DIR := $(shell pwd)
 VM_IMAGES_DIR := $(REPO_DIR)/vm-images
 OPENSTACK_RC ?= /etc/kolla/admin-openrc.sh
 UV ?= uv
+IMAGE_TAGS ?=
 
 help:
 	@echo "VM Image Build Makefile"
@@ -33,6 +34,7 @@ help:
 	@echo "  IMAGE_TYPE=$(IMAGE_TYPE)"
 	@echo "  IMAGE_NAME=$(IMAGE_NAME)"
 	@echo "  UV=$(UV)"
+	@echo "  IMAGE_TAGS=$(IMAGE_TAGS)  # OpenStack image tags (e.g., '--tag key=value --tag key2=value2')"
 
 build-cpu:
 	@$(MAKE) _build IMAGE_TYPE=cpu
@@ -101,7 +103,8 @@ _upload:
 		$(UV) run openstack image create $$IMAGE_BASE \
 			--public --disk-format qcow2 \
 			--container-format bare \
-			--file $$IMAGE_FILE && \
+			--file $$IMAGE_FILE \
+			$(IMAGE_TAGS) && \
 		echo "Image uploaded successfully!" && \
 		$(UV) run openstack image show $$IMAGE_BASE
 
