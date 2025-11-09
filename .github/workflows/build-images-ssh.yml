@@ -54,6 +54,35 @@ jobs:
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
             "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
 
-      - name: Cleanup
+      - name: Display built image information
+        if: success()
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            echo "======================================"
+            echo "Built Image Information"
+            echo "======================================"
+            cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}
+            IMAGE_FILE=$(ls -1 *.qcow2 2>/dev/null | head -1)
+            if [ -n "$IMAGE_FILE" ]; then
+              echo "Image Path: /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/$IMAGE_FILE"
+              echo "Image Size: $(ls -lh $IMAGE_FILE | awk '{print $5}')"
+              echo "Full Details:"
+              ls -lh $IMAGE_FILE
+              echo ""
+              if command -v qemu-img &> /dev/null; then
+                echo "QEMU Image Info:"
+                qemu-img info $IMAGE_FILE
+              fi
+            else
+              echo "No .qcow2 image file found!"
+            fi
+            echo "======================================"
+          EOF
+
+      - name: Cleanup temp directory on server
         if: always()
-        run: rm -f ~/.ssh/id_rsa
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "sudo rm -rf /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}" || true
