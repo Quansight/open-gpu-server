@@ -9,6 +9,10 @@ on:
       - main
       - 'aktech/**'
 
+concurrency:
+  group: build-vm-images
+  cancel-in-progress: false
+
 jobs:
   build-images:
     name: Build ${{ matrix.image-type }} Image
@@ -17,6 +21,7 @@ jobs:
     strategy:
       matrix:
         image-type: [cpu, gpu]
+      max-parallel: 1
       fail-fast: false
 
     steps:
@@ -34,20 +39,20 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "mkdir -p /tmp/vm-images-build-${{ github.run_id }}"
+            "mkdir -p /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}"
 
       - name: Copy build scripts to server
         run: |
           rsync -avz \
             -e "ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
             ./vm-images/ \
-            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/vm-images-build-${{ github.run_id }}/
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }}/
 
       - name: Build ${{ matrix.image-type }} image on remote server
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "cd /tmp/vm-images-build-${{ github.run_id }} && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
+            "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && IMAGE_YAML=${{ matrix.image-type }}-image.yaml bash build-image.sh"
 
       - name: Cleanup
         if: always()
