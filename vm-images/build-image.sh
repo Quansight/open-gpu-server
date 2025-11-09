@@ -22,9 +22,12 @@ if [[ -z "${IMAGE_YAML}" ]]; then
 fi
 
 export TMP=$(pwd)
+export COLUMNS=${COLUMNS:-200}
+export TERM=${TERM:-xterm}
+
 echo "Starting Disk Image builder"
 echo "Using config: ${IMAGE_YAML}"
 
-sudo -E /opt/stack/miniconda3/envs/kolla/bin/diskimage-builder "${IMAGE_YAML}"
+uv run diskimage-builder "${IMAGE_YAML}"
 
 echo "Disk Image Build Finished"

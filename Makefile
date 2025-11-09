@@ -10,11 +10,13 @@ IMAGE_NAME := ubuntu-2404-$(IMAGE_TYPE)-$(TIMESTAMP)
 REPO_DIR := $(shell pwd)
 VM_IMAGES_DIR := $(REPO_DIR)/vm-images
 OPENSTACK_RC ?= /etc/kolla/admin-openrc.sh
-CONDA_BASE ?= /opt/stack/miniconda3
-CONDA_ENV ?= kolla
+UV ?= uv
 
 help:
 	@echo "VM Image Build Makefile"
+	@echo ""
+	@echo "Requirements:"
+	@echo "  - uv (https://docs.astral.sh/uv/)"
 	@echo ""
 	@echo "Targets:"
 	@echo "  build-cpu          - Build CPU image"
@@ -30,6 +32,7 @@ help:
 	@echo "  BUILD_DIR=$(BUILD_DIR)"
 	@echo "  IMAGE_TYPE=$(IMAGE_TYPE)"
 	@echo "  IMAGE_NAME=$(IMAGE_NAME)"
+	@echo "  UV=$(UV)"
 
 build-cpu:
 	@$(MAKE) _build IMAGE_TYPE=cpu
@@ -50,7 +53,8 @@ _build:
 	cd $(BUILD_DIR)-$(IMAGE_TYPE) && \
 		sed -i 's/imagename: $(IMAGE_TYPE)-image.qcow2/imagename: $(IMAGE_NAME).qcow2/' $(IMAGE_TYPE)-image.yaml
 	cd $(BUILD_DIR)-$(IMAGE_TYPE) && \
-		IMAGE_YAML=$(IMAGE_TYPE)-image.yaml bash build-image.sh
+		$(UV) sync && \
+		IMAGE_YAML=$(IMAGE_TYPE)-image.yaml $(UV) run bash build-image.sh
 	@echo ""
 	@$(MAKE) show-image IMAGE_TYPE=$(IMAGE_TYPE) BUILD_DIR=$(BUILD_DIR)
 
@@ -91,17 +95,15 @@ _upload:
 	@echo "======================================"
 	@cd $(BUILD_DIR)-$(IMAGE_TYPE) && \
 		source $(OPENSTACK_RC) && \
-		source $(CONDA_BASE)/bin/activate && \
-		conda activate $(CONDA_ENV) && \
 		IMAGE_FILE=$$(ls -1 *.qcow2 2>/dev/null | head -1) && \
 		IMAGE_BASE=$$(basename $$IMAGE_FILE .qcow2) && \
 		echo "Uploading $$IMAGE_FILE..." && \
-		openstack image create $$IMAGE_BASE \
+		$(UV) run openstack image create $$IMAGE_BASE \
 			--public --disk-format qcow2 \
 			--container-format bare \
 			--file $$IMAGE_FILE && \
 		echo "Image uploaded successfully!" && \
-		openstack image show $$IMAGE_BASE
+		$(UV) run openstack image show $$IMAGE_BASE
 
 clean:
 	@echo "Cleaning up build directories..."

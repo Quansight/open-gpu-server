@@ -52,7 +52,7 @@ jobs:
       - name: Build ${{ matrix.image-type }} image on remote server
         id: build
         run: |
-          ssh gpuserver "cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }}"
+          ssh -t gpuserver "export COLUMNS=200 && cd /tmp/repo-${{ github.run_id }} && make build-${{ matrix.image-type }} BUILD_DIR=/tmp/vm-images-build-${{ github.run_id }}"
           IMAGE_NAME=$(ssh gpuserver "cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && ls -1 *.qcow2 2>/dev/null | head -1 | sed 's/.qcow2$//'")
           echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
 
