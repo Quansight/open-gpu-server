@@ -54,7 +54,7 @@ _build:
 		sed -i 's/imagename: $(IMAGE_TYPE)-image.qcow2/imagename: $(IMAGE_NAME).qcow2/' $(IMAGE_TYPE)-image.yaml
 	cd $(BUILD_DIR)-$(IMAGE_TYPE) && \
 		$(UV) sync && \
-		IMAGE_YAML=$(IMAGE_TYPE)-image.yaml $(UV) run bash build-image.sh
+		IMAGE_YAML=$(IMAGE_TYPE)-image.yaml UV=$(UV) $(UV) run bash build-image.sh
 	@echo ""
 	@$(MAKE) show-image IMAGE_TYPE=$(IMAGE_TYPE) BUILD_DIR=$(BUILD_DIR)
 

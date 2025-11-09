@@ -25,9 +25,11 @@ export TMP=$(pwd)
 export COLUMNS=${COLUMNS:-200}
 export TERM=${TERM:-xterm}
 
+UV=${UV:-uv}
+
 echo "Starting Disk Image builder"
 echo "Using config: ${IMAGE_YAML}"
 
-uv run diskimage-builder "${IMAGE_YAML}"
+${UV} run diskimage-builder "${IMAGE_YAML}"
 
 echo "Disk Image Build Finished"
