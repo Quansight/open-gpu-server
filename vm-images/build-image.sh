@@ -25,6 +25,6 @@ export TMP=$(pwd)
 echo "Starting Disk Image builder"
 echo "Using config: ${IMAGE_YAML}"
 
-sudo -E /opt/stack/miniconda3/envs/kolla/bin/diskimage-builder "${IMAGE_YAML}"
+sudo -E /opt/stack/miniconda3/envs/kolla/bin/diskimage-builder --qemu-img-options "-p" "${IMAGE_YAML}"
 
 echo "Disk Image Build Finished"

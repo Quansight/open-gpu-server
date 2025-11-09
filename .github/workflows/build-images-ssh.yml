@@ -99,7 +99,8 @@ jobs:
         run: |
           ssh -p ${{ secrets.SSH_PORT }} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "source /opt/stack/miniconda3/bin/activate && \
+            "source /etc/kolla/admin-openrc.sh && \
+             source /opt/stack/miniconda3/bin/activate && \
              conda activate kolla && \
              cd /tmp/vm-images-build-${{ github.run_id }}-${{ matrix.image-type }} && \
              echo 'Uploading image to OpenStack...' && \
