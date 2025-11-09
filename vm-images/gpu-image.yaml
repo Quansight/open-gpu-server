@@ -2,8 +2,6 @@
   no-tmpfs: true
   arch: amd64
   types: [qcow2]
-  qemu-img-options:
-    progress: "-p"
   elements:
   - vm
   - dhcp-all-interfaces
