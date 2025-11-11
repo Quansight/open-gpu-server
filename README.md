@@ -41,8 +41,6 @@ The server can spin up VMs with the following configurations:
 | `gpu_2xlarge` | 8     | 32GB | 80GB  | 1x NVIDIA Tesla V100 |
 | `gpu_4xlarge` | 8     | 64GB | 100GB | 1x NVIDIA Tesla V100 |
 
-These runners use the `ubuntu-2204-nvidia-20230914` image.
-
 ### CPU runners
 
 | Name         | vCPUs | RAM  | Disk   |
@@ -53,11 +51,9 @@ These runners use the `ubuntu-2204-nvidia-20230914` image.
 | `ci_2xlarge` | 8     | 32GB | 80GB   |
 | `ci_4xlarge` | 8     | 64GB | 100GB  |
 
-These runners use the `ubuntu-2204-20231018` image.
-
 ### Software
 
-These runners run ISOs derived from Ubuntu 22.04. Images are built with the instructions provided in the [`images`](./images) folder.
+See [`vm-images`](./vm-images) folder for details.
 
 ## Limitations
 
