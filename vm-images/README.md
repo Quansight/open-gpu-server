@@ -1,31 +1,78 @@
-# VM Images for OpenStack
+# VM Images
 
-Creates Ubuntu VM Images with following things installed:
+Builds Ubuntu 24.04 images for OpenStack with Docker and NVIDIA drivers (GPU only).
 
-- Nvidia drivers (GPU images only)
-- Docker
+## Quick Start
 
-The created image is uploaded to a GCS bucket, which is then retrieved by a self-hosted GHA runner running on our OpenStack instance.
-
-## GHA workflows
-
-These should automate the creation of the images:
-
-- `.github/workflows/build-vm-images.yml` - Github Action to build the image
-- `.github/workflows/openstack.yml` - Github Action to upload the VM image to OpenStack
-
-## Building manually on Linux
-
-1. Install `diskimage-builder` manually via `pip install -r requirements.txt`. A virtual environment is advised. Check if you have all the system dependencies in `ubuntu24-system-requirements.txt`)
-2. Run `scripts/build-image.sh` to build the image. This will create a `.qcow2` file. 
-    - Export `$IMAGE_YAML` to choose a different image to build (e.g. `cpu-image.yaml`, `gpu-image.yaml`).
-    - Export `$OUTPUT_IMAGE` to change the qcow2 output filename.
-
-## Add Image to OpenStack
+From the repo root, run:
 
 ```bash
-openstack image create ubuntu-2404-nvidia-docker \
+# Build CPU image (can run anywhere)
+make build-cpu
+
+# Build GPU image (MUST run on GPU server)
+make build-gpu
+
+# Upload to OpenStack
+make upload-cpu
+make upload-gpu
+```
+
+## Requirements
+
+- `uv` package manager ([install here](https://docs.astral.sh/uv/))
+- Linux (builds won't work on Mac)
+- Root access (diskimage-builder needs it)
+- OpenStack credentials from `/etc/kolla/admin-openrc.sh` on GPU server (for uploads only)
+
+## Build Directory
+
+By default images build to `/tmp/vm-images-build-{timestamp}`. Override with:
+
+```bash
+make build-cpu BUILD_DIR=/path/to/build
+```
+
+## Custom UV Path
+
+If uv isn't in your PATH:
+
+```bash
+make build-cpu UV=/path/to/uv
+```
+
+## Automated Builds
+
+GitHub Actions workflow (`.github/workflows/build-images-ssh.yml`) can be triggered manually via workflow_dispatch.
+
+The workflow SSHs into the GPU server to run both CPU and GPU builds. Uploads to OpenStack only happen on `main` branch. GPU images require actual GPU hardware - they'll fail without it.
+
+## Image Contents
+
+**Both images:**
+- Ubuntu 24.04 (Noble)
+- Docker
+- Node.js
+- cloud-init
+
+**GPU images only:**
+- NVIDIA drivers
+- CUDA
+
+## Manual Upload
+
+If you need to upload manually:
+
+```bash
+source /etc/kolla/admin-openrc.sh
+openstack image create my-image-name \
   --public --disk-format qcow2 \
   --container-format bare \
-  --file <created-image>.qcow2
+  --file path/to/image.qcow2
+```
+
+## Cleanup
+
+```bash
+make clean BUILD_DIR=/path/to/build
 ```
