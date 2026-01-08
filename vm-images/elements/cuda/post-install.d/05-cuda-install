@@ -31,7 +31,8 @@ echo 'debconf debconf/frontend select Noninteractive' | sudo debconf-set-selecti
 DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q
 DEBIAN_FRONTEND=noninteractive sudo apt update
 DEBIAN_FRONTEND=noninteractive sudo apt upgrade -y
-DEBIAN_FRONTEND=noninteractive sudo apt install nvidia-driver-525 -y
+DEBIAN_FRONTEND=noninteractive sudo apt install -y ubuntu-drivers-common
+DEBIAN_FRONTEND=noninteractive sudo ubuntu-drivers install nvidia:580-server
 echo "Put nvidia drivers on hold: DO NOT UPGRADE basically"
 dpkg-query -W --showformat='${Package} ${Status}\n' | grep -v deinstall | awk '{ print $1 }' | grep -E 'nvidia.*-[0-9]+$' | xargs -r -L 1 sudo apt-mark hold
 
