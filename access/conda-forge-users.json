@@ -1,6 +1,10 @@
 {
   "users": [
     {
+      "github": "conda-forge-admin",
+      "id": 16698198
+    },
+    {
       "github": "jaimergp",
       "id": 2559438
     },
