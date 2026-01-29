@@ -35,6 +35,7 @@ DEBIAN_FRONTEND=noninteractive sudo apt install -y ubuntu-drivers-common
 # The --gpgpu flag is required for server drivers (-server suffix)
 # See: https://documentation.ubuntu.com/server/how-to/graphics/install-nvidia-drivers/
 DEBIAN_FRONTEND=noninteractive sudo ubuntu-drivers install --gpgpu nvidia:580-server
+DEBIAN_FRONTEND=noninteractive sudo apt install nvidia-utils-580-server
 echo "Put nvidia drivers on hold: DO NOT UPGRADE basically"
 dpkg-query -W --showformat='${Package} ${Status}\n' | grep -v deinstall | awk '{ print $1 }' | grep -E '(nvidia|libnvidia|linux-.+-nvidia)-.*580' | xargs -r -L 1 sudo apt-mark hold
 
