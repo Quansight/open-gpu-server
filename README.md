@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> The server will be decommissioned as of 2026-03-23 and the service will not be available from then on.
+
 # open-gpu-server
 
 This repository provides information about the OpenStack instance Quansight and MetroStar are providing to conda-forge and other communities.
