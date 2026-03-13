@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> The server will be decommissioned as of 2026-03-16 and the service will not be available from then on.
+> The server will be decommissioned as of 2026-03-13 and the service will not be available from then on.
 
 # open-gpu-server
 
